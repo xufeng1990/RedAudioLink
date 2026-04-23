@@ -18,7 +18,7 @@ Use this skill when:
 
 - Simple tasks that you can complete directly
 - Tasks that require immediate user interaction
-- Read-only operations (use grep/glob/read tools instead)
+- Read-only operations (use ripgrep or glob/read tools instead)
 - Quick file edits (use edit tool directly)
 - Analysis, planning, or debugging (e.g. performing code review)
 

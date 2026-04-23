@@ -20,7 +20,7 @@ Use this skill when:
 
 - Simple tasks that you can complete directly
 - Tasks that require file edits or implementation (use delegation skill instead)
-- Read-only operations (use grep/glob/read tools instead)
+- Read-only operations (use ripgrep or glob/read tools instead)
 
 ## Available Functions
 
