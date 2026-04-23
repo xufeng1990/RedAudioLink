@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "KiS8oAGloaV-NfY4jgkil"
+uri = "file://exports/red-inspection-checklist.tar.gz"
+type = "unspecified"
+title = "Red Inspection Checklist - Source Code"
+
+[[outputs]]
+id = "y3PYBW8tS8hFcMr7fls6I"
+uri = "file://attached_assets/waveform_demo.gif"
+type = "image"
+title = "声波柱动画（Waveform）预览"

@@ -1,0 +1,43 @@
+{
+    "model_no": "RFMDUAL",
+    "SN": "217055232",
+    "date": "2026-04-10",
+    "duration": 6,
+    "sensor_status": 0,
+    "battery_level": 4,
+    "battery": 3.04,
+    "dust_level": 1,
+    "main_power_status": 0,
+    "main_power_events": {
+        "times": 1,
+        "last_time": 1
+    },
+    "Wrong_Wiring_events": {
+        "times": 2,
+        "last_time": 2
+    },
+    "Wire_Interconnect_events": {
+        "times": 3,
+        "last_time": 3
+    },
+    "Interconnect_events": {
+        "times": 5,
+        "last_time": 5
+    },
+    "low_battery_events": {
+        "warning_beeps": 4,
+        "last_beep": 4
+    },
+    "test_button_pressed": {
+        "times": 6,
+        "last_time": 6
+    },
+    "times_alarm_deactivated": {
+        "times": 7,
+        "last_time": 7
+    },
+    "smoke_alarm": {
+        "times": 8,
+        "last_time": 8
+    }
+}
