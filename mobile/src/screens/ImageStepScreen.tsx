@@ -12,6 +12,7 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Colors } from '../theme/colors';
 import { Device } from '../types';
 import WebCropModal from '../components/WebCropModal';
@@ -152,10 +153,25 @@ export default function ImageStepScreen({ device, onBack, onFinish }: Props) {
     webInputRef.current.click();
   };
 
-  // ── 原生端：将 asset 转成 data URL（避免 file:// 读取失败）───
-  const assetToDataUrl = (asset: ImagePicker.ImagePickerAsset): string => {
-    if (asset.base64) return `data:image/jpeg;base64,${asset.base64}`;
-    return asset.uri; // fallback，App.tsx 会再次尝试 FileSystem 读取
+  // ── 原生端：压缩图片到 max 800px，quality 0.78 ───────────────
+  // 保证图片清晰（不低于 800px），同时大幅减小 base64 体积，
+  // 让 PDF 嵌入的 data URI 更小、生成更快
+  const compressImageNative = async (uri: string, origW?: number, origH?: number): Promise<string> => {
+    const MAX = 800;
+    const actions: ImageManipulator.Action[] = [];
+    if (origW && origH && (origW > MAX || origH > MAX)) {
+      if (origW >= origH) {
+        actions.push({ resize: { width: MAX } });
+      } else {
+        actions.push({ resize: { height: MAX } });
+      }
+    }
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      actions,
+      { compress: 0.78, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    );
+    return `data:image/jpeg;base64,${result.base64}`;
   };
 
   // ── 原生端：从相册选图 ────────────────────────────────────────
@@ -169,11 +185,13 @@ export default function ImageStepScreen({ device, onBack, onFinish }: Props) {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
+      quality: 1,   // 先用最高质量拿 URI，再由 ImageManipulator 压缩
+      base64: false,
     });
     if (!result.canceled && result.assets[0]) {
-      setForTarget(target, assetToDataUrl(result.assets[0]));
+      const asset = result.assets[0];
+      const dataUri = await compressImageNative(asset.uri, asset.width, asset.height);
+      setForTarget(target, dataUri);
     }
   };
 
@@ -187,11 +205,13 @@ export default function ImageStepScreen({ device, onBack, onFinish }: Props) {
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
+      quality: 1,   // 先用最高质量拿 URI，再由 ImageManipulator 压缩
+      base64: false,
     });
     if (!result.canceled && result.assets[0]) {
-      setForTarget(target, assetToDataUrl(result.assets[0]));
+      const asset = result.assets[0];
+      const dataUri = await compressImageNative(asset.uri, asset.width, asset.height);
+      setForTarget(target, dataUri);
     }
   };
 

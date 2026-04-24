@@ -219,6 +219,7 @@ export default function App() {
   const [viewingReport, setViewingReport] = useState<CompletedReport | null>(
     null,
   );
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   // Authentication is determined by the presence of a valid token
   // (persisted by the auth API). On successful login/register we just
@@ -463,49 +464,56 @@ export default function App() {
           reports={taskReports[selectedTask.id] || []}
           loadingReports={loadingTaskReports[selectedTask.id] || false}
           isCompleted={selectedTask.status === "completed"}
+          pdfGenerating={pdfGenerating}
           onReopenTask={async () => {
             await handleRecallTaskApi(selectedTask.id);
             setScreen("home");
           }}
           onSendPdf={async () => {
+            if (pdfGenerating) return;
             const rawReports = taskReports[selectedTask.id] || [];
             if (rawReports.length === 0) return;
-            // Synthesize CompletedReport[] from stored deviceJson
-            const baseDev = mockProperties[0].devices[0];
-            const toShare: CompletedReport[] = rawReports
-              .map((r) => {
-                const parsed = (r.deviceJson ?? null) as ParsedDeviceData | null;
-                if (!parsed) return null;
-                const dev: Device = {
-                  ...baseDev, ...parsed, id: baseDev.id,
-                  location: baseDev.location,
-                  model: parsed.model_no,
-                  serialNumber: parsed.sn,
-                  dateCode: parsed.date,
-                  batteryVoltage: parsed.battery,
-                };
-                const restoredPhotos: ReportPhotos =
-                  (parsed as any)?._photos ?? { deviceCode: null, equipmentLocation: null };
-                const restoredActions: ActionResult[] = (parsed as any)?._actions ?? [];
-                const restoredLocation: DeviceLocation =
-                  (parsed as any)?._location ?? baseDev.location;
-                return {
-                  id: r.id, taskId: r.taskId, taskNumber: r.taskNumber,
-                  employeeId: profile.employeeId,
-                  inspectedAt: formatCreationTime(r.createdAt),
-                  device: dev, location: restoredLocation,
-                  actions: restoredActions, photos: restoredPhotos,
-                  devicesInspected: r.deviceCount,
-                } as CompletedReport;
-              })
-              .filter(Boolean) as CompletedReport[];
-            if (toShare.length === 0) {
-              // Fallback for older reports without deviceJson
-              const latest = rawReports[0];
-              if (latest) openSavedReport(latest.id);
-              return;
+            setPdfGenerating(true);
+            try {
+              // Synthesize CompletedReport[] from stored deviceJson
+              const baseDev = mockProperties[0].devices[0];
+              const toShare: CompletedReport[] = rawReports
+                .map((r) => {
+                  const parsed = (r.deviceJson ?? null) as ParsedDeviceData | null;
+                  if (!parsed) return null;
+                  const dev: Device = {
+                    ...baseDev, ...parsed, id: baseDev.id,
+                    location: baseDev.location,
+                    model: parsed.model_no,
+                    serialNumber: parsed.sn,
+                    dateCode: parsed.date,
+                    batteryVoltage: parsed.battery,
+                  };
+                  const restoredPhotos: ReportPhotos =
+                    (parsed as any)?._photos ?? { deviceCode: null, equipmentLocation: null };
+                  const restoredActions: ActionResult[] = (parsed as any)?._actions ?? [];
+                  const restoredLocation: DeviceLocation =
+                    (parsed as any)?._location ?? baseDev.location;
+                  return {
+                    id: r.id, taskId: r.taskId, taskNumber: r.taskNumber,
+                    employeeId: profile.employeeId,
+                    inspectedAt: formatCreationTime(r.createdAt),
+                    device: dev, location: restoredLocation,
+                    actions: restoredActions, photos: restoredPhotos,
+                    devicesInspected: r.deviceCount,
+                  } as CompletedReport;
+                })
+                .filter(Boolean) as CompletedReport[];
+              if (toShare.length === 0) {
+                // Fallback for older reports without deviceJson
+                const latest = rawReports[0];
+                if (latest) openSavedReport(latest.id);
+                return;
+              }
+              await generateTaskPdf(toShare, selectedTask.taskId);
+            } finally {
+              setPdfGenerating(false);
             }
-            await generateTaskPdf(toShare, selectedTask.taskId);
           }}
           onOpenReport={(r) => {
             // Prefer the structured device JSON saved alongside the

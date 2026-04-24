@@ -343,8 +343,11 @@ export const generateTaskPdf = async (
     const { uri } = await Print.printToFileAsync({
       html,
       base64: false,
-      width: 816,   // 8.5in @ 96dpi
-      height: 1056, // 11in @ 96dpi
+      // 8.5in × 11in @ 72dpi — same physical page size as 96dpi but
+      // the WebView renders at a smaller pixel viewport, which is
+      // significantly faster while keeping text/layout identical.
+      width: 612,
+      height: 792,
     });
     const available = await Sharing.isAvailableAsync();
     if (available) {

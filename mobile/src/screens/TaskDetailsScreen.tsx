@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Task } from '../types';
@@ -23,6 +24,7 @@ interface Props {
   reports?: ReportListItem[];
   loadingReports?: boolean;
   isCompleted?: boolean;
+  pdfGenerating?: boolean;
   onSendPdf?: () => void;
   onOpenReport?: (r: ReportListItem) => void;
   onBack: () => void;
@@ -156,6 +158,7 @@ export default function TaskDetailsScreen({
   reports = [],
   loadingReports = false,
   isCompleted = false,
+  pdfGenerating = false,
   onSendPdf,
   onOpenReport,
   onBack,
@@ -178,11 +181,15 @@ export default function TaskDetailsScreen({
         {reports.length > 0 ? (
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={onSendPdf}
-            activeOpacity={0.7}
+            onPress={pdfGenerating ? undefined : onSendPdf}
+            activeOpacity={pdfGenerating ? 1 : 0.7}
             testID="button-send-pdf"
           >
-            <ShareIcon color={Colors.primary} />
+            {pdfGenerating ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <ShareIcon color={Colors.primary} />
+            )}
           </TouchableOpacity>
         ) : (
           <View style={styles.headerRight} />
