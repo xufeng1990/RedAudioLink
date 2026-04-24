@@ -1,6 +1,6 @@
 ---
 name: mcp-figma
-description: 'Call tools from the figma MCP server through code_execution callbacks. Available tools: mcpFigma_addCodeConnectMap, mcpFigma_createDesignSystemRules, mcpFigma_createNewFile, mcpFigma_generateDiagram, mcpFigma_getCodeConnectMap, mcpFigma_getCodeConnectSuggestions, mcpFigma_getContextForCodeConnect, mcpFigma_getDesignContext, mcpFigma_getFigjam, mcpFigma_getMetadata, mcpFigma_getScreenshot, mcpFigma_getVariableDefs, mcpFigma_sendCodeConnectMappings, mcpFigma_whoami. Reference skill for more information.'
+description: 'Call tools from the figma MCP server through code_execution callbacks. Available tools: mcpFigma_addCodeConnectMap, mcpFigma_createDesignSystemRules, mcpFigma_createNewFile, mcpFigma_generateDiagram, mcpFigma_getCodeConnectMap, mcpFigma_getCodeConnectSuggestions, mcpFigma_getContextForCodeConnect, mcpFigma_getDesignContext, mcpFigma_getFigjam, mcpFigma_getMetadata, mcpFigma_getScreenshot, mcpFigma_getVariableDefs, mcpFigma_sendCodeConnectMappings, mcpFigma_uploadAssets, mcpFigma_whoami. Reference skill for more information.'
 ---
 
 # MCP Skill: figma
@@ -226,13 +226,14 @@ Generate a screenshot for a given node or the currently selected node in the Fig
 
 - `nodeId` (string, required): The ID of the node in the Figma document, eg. "123:456" or "123-456". This should be a valid node ID in the Figma document.
 - `fileKey` (string, required): The key of the Figma file to use. If the URL is provided, extract the file key from the URL. The given URL must be in the format https://figma.com/design/:fileKey/:fileName?node-id=:int1-:int2. The extracted fileKey would be `:fileKey`.
+- `contentsOnly` (boolean, optional): When true, renders the node in isolation — floating/overlapping content (e.g. connectors parented to the page that visually sit above a section) is excluded. Defaults to false so screenshots match what the user sees on the canvas. Only set to true if the caller specifically needs the isolated render.
 
 **Returns:** Object with `status`, `content`, and optional metadata.
 
 **Example:**
 
 ```javascript
-const result = await mcpFigma_getScreenshot({ nodeId: "", fileKey: "" });
+const result = await mcpFigma_getScreenshot({ nodeId: "", fileKey: "", contentsOnly: false });
 console.log(result);
 ```
 
@@ -276,6 +277,26 @@ Use the nodeId parameter to specify a node id. Use the fileKey parameter to spec
 
 ```javascript
 const result = await mcpFigma_sendCodeConnectMappings({ nodeId: "", fileKey: "", clientLanguages: "", clientFrameworks: "", mappings: [] });
+console.log(result);
+```
+
+### mcpFigma_uploadAssets(...)
+
+Upload assets (images, etc.) into a Figma file. Call with a "count" to get that many single-use upload URLs. POST raw asset bytes to each URL with the correct Content-Type header (e.g. image/png, image/jpeg). Each upload URL handles storage, BlobStore commit, and canvas placement automatically. For a single image with nodeId, sets it as a fill on that existing node. Without nodeId, creates new frames with image fills on the current page. Supports PNG, JPG, GIF, and WebP formats. Max 10MB per asset.
+
+**Parameters:**
+
+- `fileKey` (string, required): The key of the Figma file to use. If the URL is provided, extract the file key from the URL. The given URL must be in the format https://figma.com/design/:fileKey/:fileName?node-id=:int1-:int2. The extracted fileKey would be `:fileKey`.
+- `count` (integer, optional): Number of assets to upload (1-5, default 1). Returns that many single-use upload URLs. POST raw asset bytes to each URL with the correct Content-Type header (e.g. image/png, image/jpeg). Each upload URL handles storage, BlobStore commit, and canvas placement automatically.
+- `nodeId` (string, optional): Optional. If provided, sets the uploaded asset as a fill on this existing node. Can only be used when count is 1.
+- `scaleMode` (string, optional): How the image fills the node. Default: FILL.
+
+**Returns:** Object with `status`, `content`, and optional metadata.
+
+**Example:**
+
+```javascript
+const result = await mcpFigma_uploadAssets({ fileKey: "", count: 1, nodeId: "", scaleMode: "FILL" });
 console.log(result);
 ```
 

@@ -1,13 +1,14 @@
 ---
 name: replit-migration-guardrails
-description: Rules for migrating external projects (Lovable, Base44, v0, Bolt) to Replit. Use Replit's built-in DB, auth, secrets, and integrations — not Supabase / Firebase / cookie-session / raw API keys. Base44 imports additionally get a call-by-call map in `references/base44.md`.
+description: Rules for migrating external projects (Lovable, Base44, v0/Vercel, Bolt) to Replit. Use Replit's built-in DB, auth, secrets, and integrations — not Supabase / Firebase / cookie-session / raw API keys. Base44 imports get a call-by-call map in `references/base44.md`; v0/Vercel imports get a Next.js migration guide in `references/vercel.md`.
 ---
 
 # Migration guardrails
 
-Rules for migrating Lovable / Base44 / v0 / Bolt imports to Replit.
-Base44 imports additionally get a call-by-call map in
-`references/base44.md`. Security reasoning:
+Rules for migrating Lovable / Base44 / v0 / Vercel / Bolt imports to
+Replit. Base44 imports get a call-by-call map in
+`references/base44.md`; v0/Vercel imports get a Next.js migration
+guide in `references/vercel.md`. Security reasoning:
 <https://blog.replit.com/defense-in-depth-how-replit-secures-every-layer-of-the-vibe-coding-stack>.
 
 ## Rules
