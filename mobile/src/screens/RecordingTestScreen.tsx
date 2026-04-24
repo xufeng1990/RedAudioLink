@@ -9,6 +9,8 @@ import {
   Easing,
   Platform,
   useWindowDimensions,
+  Alert,
+  Linking,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { Asset } from "expo-asset";
@@ -782,8 +784,25 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
     try {
       const perm = await AudioModule.requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        setStatusMsg("Microphone permission denied");
-        stopTimerRef.current = setTimeout(() => setStage("failed"), 1200);
+        if (perm.canAskAgain === false) {
+          Alert.alert(
+            "Microphone Permission Required",
+            "Please enable microphone access in your device Settings to use this feature.\n\nSettings → Apps → [App Name] → Permissions → Microphone",
+            [
+              { text: "Cancel", style: "cancel", onPress: () => setStage("instructions") },
+              {
+                text: "Open Settings",
+                onPress: () => {
+                  Linking.openSettings();
+                  setStage("instructions");
+                },
+              },
+            ],
+          );
+        } else {
+          setStatusMsg("Microphone permission denied. Please tap Start again and allow access.");
+          stopTimerRef.current = setTimeout(() => setStage("instructions"), 2500);
+        }
         return;
       }
       if (Platform.OS === "ios") {
