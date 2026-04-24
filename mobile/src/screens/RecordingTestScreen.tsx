@@ -12,6 +12,7 @@ import {
   Alert,
   Linking,
   PermissionsAndroid,
+  NativeModules,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { Asset } from "expo-asset";
@@ -40,13 +41,21 @@ import * as FileSystem from "expo-file-system/legacy";
 // 只能录 AAC 等压缩格式（音质差、文件小）。
 // 这里用 react-native-audio-record 拿到 16-bit raw PCM 流，
 // 再用我们自己的 buildWavHeader 拼成完全合法的 WAV 上传给 FFT 服务。
-// require 用 try/catch + Platform 守卫，避免 web/iOS 打包/运行时报错。
+//
+// ⚠️ 必须先检查 NativeModules.RNAudioRecord，因为如果原生模块没有链接，
+// require().default 返回的是包装对象（非 null），但内部调用 RNAudioRecord.init()
+// 时会抛出 "Cannot read property 'init' of null"。
 let AndroidAudioRecord: any = null;
 if (Platform.OS === "android") {
   try {
-    AndroidAudioRecord = require("react-native-audio-record").default;
+    if (NativeModules.RNAudioRecord) {
+      AndroidAudioRecord = require("react-native-audio-record").default;
+      console.log("[AndroidAudioRecord] native module linked OK");
+    } else {
+      console.warn("[AndroidAudioRecord] NativeModules.RNAudioRecord is null — module not linked in this build");
+    }
   } catch (err) {
-    console.log("[AndroidAudioRecord] not linked yet:", (err as any)?.message);
+    console.warn("[AndroidAudioRecord] require failed:", (err as any)?.message);
   }
 }
 
