@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   Alert,
   Linking,
+  PermissionsAndroid,
 } from "react-native";
 import { Image as ExpoImage } from "expo-image";
 import { Asset } from "expo-asset";
@@ -780,16 +781,40 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
     }
   };
 
-  const startNativeRecording = async () => {
-    try {
-      const perm = await AudioModule.requestRecordingPermissionsAsync();
-      if (!perm.granted) {
-        if (perm.canAskAgain === false) {
+  const requestMicPermission = async (): Promise<boolean> => {
+    if (Platform.OS === "android") {
+      try {
+        const already = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        );
+        if (already) return true;
+
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+          {
+            title: "Microphone Permission",
+            message:
+              "This app needs microphone access to read smoke alarm inspection data.",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Deny",
+            buttonPositive: "Allow",
+          },
+        );
+
+        if (result === PermissionsAndroid.RESULTS.GRANTED) {
+          return true;
+        }
+
+        if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
           Alert.alert(
             "Microphone Permission Required",
-            "Please enable microphone access in your device Settings to use this feature.\n\nSettings → Apps → [App Name] → Permissions → Microphone",
+            "Please enable microphone access in Settings to use this feature.",
             [
-              { text: "Cancel", style: "cancel", onPress: () => setStage("instructions") },
+              {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => setStage("instructions"),
+              },
               {
                 text: "Open Settings",
                 onPress: () => {
@@ -800,11 +825,53 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
             ],
           );
         } else {
-          setStatusMsg("Microphone permission denied. Please tap Start again and allow access.");
+          setStatusMsg(
+            "Microphone permission denied. Tap Start again and allow access.",
+          );
           stopTimerRef.current = setTimeout(() => setStage("instructions"), 2500);
         }
-        return;
+        return false;
+      } catch (err) {
+        return false;
       }
+    } else {
+      const perm = await AudioModule.requestRecordingPermissionsAsync();
+      if (!perm.granted) {
+        if (perm.canAskAgain === false) {
+          Alert.alert(
+            "Microphone Permission Required",
+            "Please enable microphone access in Settings.",
+            [
+              {
+                text: "Cancel",
+                style: "cancel",
+                onPress: () => setStage("instructions"),
+              },
+              {
+                text: "Open Settings",
+                onPress: () => {
+                  Linking.openSettings();
+                  setStage("instructions");
+                },
+              },
+            ],
+          );
+        } else {
+          setStatusMsg(
+            "Microphone permission denied. Tap Start again and allow access.",
+          );
+          stopTimerRef.current = setTimeout(() => setStage("instructions"), 2500);
+        }
+        return false;
+      }
+      return true;
+    }
+  };
+
+  const startNativeRecording = async () => {
+    try {
+      const granted = await requestMicPermission();
+      if (!granted) return;
       if (Platform.OS === "ios") {
         await setAudioModeAsync({
           allowsRecording: true,
