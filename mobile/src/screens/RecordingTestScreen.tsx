@@ -808,7 +808,7 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
         if (result === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
           Alert.alert(
             "Microphone Permission Required",
-            "Please enable microphone access in Settings to use this feature.",
+            "Microphone access was denied.\n\nTo enable: Settings → Apps → Red Inspection → Permissions → Microphone → Allow",
             [
               {
                 text: "Cancel",
@@ -816,7 +816,7 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
                 onPress: () => setStage("instructions"),
               },
               {
-                text: "Open Settings",
+                text: "Go to Settings",
                 onPress: () => {
                   Linking.openSettings();
                   setStage("instructions");
@@ -826,9 +826,9 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
           );
         } else {
           setStatusMsg(
-            "Microphone permission denied. Tap Start again and allow access.",
+            "Permission denied — tap Start again and tap Allow.",
           );
-          stopTimerRef.current = setTimeout(() => setStage("instructions"), 2500);
+          stopTimerRef.current = setTimeout(() => setStage("instructions"), 3000);
         }
         return false;
       } catch (err) {

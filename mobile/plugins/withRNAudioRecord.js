@@ -1,12 +1,46 @@
-const { withSettingsGradle, withAppBuildGradle } = require('@expo/config-plugins');
+const {
+  withSettingsGradle,
+  withAppBuildGradle,
+  withAndroidManifest,
+} = require('@expo/config-plugins');
 
 /**
- * Config plugin to force-link react-native-audio-record in Expo managed workflow.
- * This package has no react-native.config.js and no "react-native" source field
- * in package.json, so Expo's autolinking may miss it without this plugin.
+ * Config plugin for react-native-audio-record.
+ * 1. Force-links the native module into the Android Gradle build.
+ * 2. Explicitly writes RECORD_AUDIO and related permissions into AndroidManifest.xml
+ *    so they are guaranteed to appear in the built APK regardless of what
+ *    other plugins or the permissions array does.
  */
 function withRNAudioRecord(config) {
-  // Step 1: Add to android/settings.gradle so Gradle knows about the module
+  // ── Step 1: Ensure permissions are in AndroidManifest ──────────────────────
+  config = withAndroidManifest(config, (config) => {
+    const manifest = config.modResults.manifest;
+
+    const requiredPermissions = [
+      'android.permission.RECORD_AUDIO',
+      'android.permission.MODIFY_AUDIO_SETTINGS',
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+    ];
+
+    if (!manifest['uses-permission']) {
+      manifest['uses-permission'] = [];
+    }
+
+    const existing = manifest['uses-permission'].map(
+      (p) => p.$?.['android:name'] || ''
+    );
+
+    for (const perm of requiredPermissions) {
+      if (!existing.includes(perm)) {
+        manifest['uses-permission'].push({ $: { 'android:name': perm } });
+      }
+    }
+
+    return config;
+  });
+
+  // ── Step 2: Add module to android/settings.gradle ──────────────────────────
   config = withSettingsGradle(config, (config) => {
     const contents = config.modResults.contents;
     const include = `include ':react-native-audio-record'`;
@@ -20,7 +54,7 @@ function withRNAudioRecord(config) {
     return config;
   });
 
-  // Step 2: Add implementation dependency in android/app/build.gradle
+  // ── Step 3: Add implementation to android/app/build.gradle ─────────────────
   config = withAppBuildGradle(config, (config) => {
     const contents = config.modResults.contents;
     const dep = `implementation project(':react-native-audio-record')`;
