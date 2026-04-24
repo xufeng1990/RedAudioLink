@@ -52,7 +52,9 @@ if (Platform.OS === "android") {
       AndroidAudioRecord = require("react-native-audio-record").default;
       console.log("[AndroidAudioRecord] native module linked OK");
     } else {
-      console.warn("[AndroidAudioRecord] NativeModules.RNAudioRecord is null — module not linked in this build");
+      console.warn(
+        "[AndroidAudioRecord] NativeModules.RNAudioRecord is null — module not linked in this build",
+      );
     }
   } catch (err) {
     console.warn("[AndroidAudioRecord] require failed:", (err as any)?.message);
@@ -834,10 +836,11 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
             ],
           );
         } else {
-          setStatusMsg(
-            "Permission denied — tap Start again and tap Allow.",
+          setStatusMsg("Permission denied — tap Start again and tap Allow.");
+          stopTimerRef.current = setTimeout(
+            () => setStage("instructions"),
+            3000,
           );
-          stopTimerRef.current = setTimeout(() => setStage("instructions"), 3000);
         }
         return false;
       } catch (err) {
@@ -869,7 +872,10 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
           setStatusMsg(
             "Microphone permission denied. Tap Start again and allow access.",
           );
-          stopTimerRef.current = setTimeout(() => setStage("instructions"), 2500);
+          stopTimerRef.current = setTimeout(
+            () => setStage("instructions"),
+            2500,
+          );
         }
         return false;
       }
@@ -894,9 +900,16 @@ export default function RecordingTestScreen({ onBack, onViewReport }: Props) {
           allowsBackgroundRecording: true,
         });
       }
-      if (Platform.OS === "android" && AndroidAudioRecord) {
-        // Android：用 react-native-audio-record 拿真正的 16-bit raw PCM
-        // 44100 Hz / 双声道 / 16-bit ⇒ 1411 kbps，完全无压缩
+      if (Platform.OS === "android") {
+        // Android MUST use react-native-audio-record for raw 16-bit PCM.
+        // expo-audio only gives compressed AAC which cannot be FFT-decoded.
+        if (!AndroidAudioRecord) {
+          // Module not linked → fail clearly instead of falling back silently
+          setStage("instructions");
+          Alert.alert("Recording Unavailable");
+          return;
+        }
+        // 44100 Hz / 双声道 / 16-bit PCM
         // audioSource 6 = VOICE_RECOGNITION（关闭 AGC/降噪/回声消除，
         // 这些处理会破坏后续 FFT 解码）
         AndroidAudioRecord.init({
