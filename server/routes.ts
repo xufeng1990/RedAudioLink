@@ -56,12 +56,14 @@ function toPublic(user: {
   email: string;
   businessId: string;
   createdAt: Date;
+  status: string;
 }): PublicUser {
   return {
     id: user.id,
     email: user.email,
     businessId: user.businessId,
     createdAt: user.createdAt,
+    status: user.status,
   };
 }
 
@@ -319,7 +321,7 @@ export async function registerRoutes(
     try {
       const data = updateTaskSchema.parse(req.body);
       const user = (req as any).user as User;
-      const updated = await storage.updateTask(user.id, req.params.id, data);
+      const updated = await storage.updateTask(user.id, (req.params.id as string), data);
       if (!updated) {
         return res.status(404).json({ message: "Task not found" });
       }
@@ -337,7 +339,7 @@ export async function registerRoutes(
   app.delete("/api/tasks/:id", requireAuth, async (req, res, next) => {
     try {
       const user = (req as any).user as User;
-      const ok = await storage.deleteTask(user.id, req.params.id);
+      const ok = await storage.deleteTask(user.id, (req.params.id as string));
       if (!ok) return res.status(404).json({ message: "Task not found" });
       res.json({ ok: true });
     } catch (err) {
@@ -358,7 +360,7 @@ export async function registerRoutes(
       try {
         const data = insertReportSchema.parse(req.body);
         const user = (req as any).user as User;
-        const task = await storage.getTask(user.id, req.params.taskId);
+        const task = await storage.getTask(user.id, (req.params.taskId as string));
         if (!task) return res.status(404).json({ message: "Task not found" });
         const report = await storage.createReport(user.id, task.id, {
           taskNumber: data.taskNumber,
@@ -390,7 +392,7 @@ export async function registerRoutes(
   app.get("/api/tasks/:taskId/reports", requireAuth, async (req, res, next) => {
     try {
       const user = (req as any).user as User;
-      const task = await storage.getTask(user.id, req.params.taskId);
+      const task = await storage.getTask(user.id, (req.params.taskId as string));
       if (!task) return res.status(404).json({ message: "Task not found" });
       const items = await storage.listReports(user.id, task.id);
       res.json({
@@ -411,7 +413,7 @@ export async function registerRoutes(
   app.get("/api/reports/:id", requireAuth, async (req, res, next) => {
     try {
       const user = (req as any).user as User;
-      const report = await storage.getReport(user.id, req.params.id);
+      const report = await storage.getReport(user.id, (req.params.id as string));
       if (!report) return res.status(404).json({ message: "Report not found" });
       res.setHeader("content-type", "text/html; charset=utf-8");
       res.send(report.html);
@@ -423,7 +425,7 @@ export async function registerRoutes(
   app.get("/api/reports/:id/device-json", requireAuth, async (req, res, next) => {
     try {
       const user = (req as any).user as User;
-      const report = await storage.getReport(user.id, req.params.id);
+      const report = await storage.getReport(user.id, (req.params.id as string));
       if (!report) return res.status(404).json({ message: "Report not found" });
       res.json({
         id: report.id,

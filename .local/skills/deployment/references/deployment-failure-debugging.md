@@ -130,13 +130,25 @@ If the callback fails (e.g. stale build ID, transient error), report the error a
 
 Read the build logs carefully. The failure cause is almost always near the end of the log output. If the tail doesn't contain enough context, fetch an earlier window with `logs.slice(-160, -80)`.
 
+A deployment goes through these phases in order: **build** → **promote** → **serve**. The build logs show which phase failed:
+
+- **Build phase failures** look like compilation errors, `npm install` failures, missing dependencies, or build commands exiting non-zero.
+- **Promote phase failures** look like the build succeeding (e.g. image pushed, container started) followed by the container failing to become ready. What "ready" means depends on the deployment target:
+  - **`autoscale` and HTTP-serving `vm`**: the deployer sends a startup probe and waits for an HTTP 200 response. Build logs mention health checks, startup probes, or readiness probes timing out. The default probe path is `GET /`. The probe fails if the app crash-loops, returns non-200 on the probe path, binds to the wrong host/port, or takes too long to start.
+  - **non-HTTP `vm` (Discord bots, workers, etc.) and `scheduled` jobs**: there is no HTTP probe. The promote step fails when the run command exits non-zero or crashes during startup. Build logs typically just show the process exiting with a stack trace or non-zero exit code. Do **not** look for an HTTP route in this case — the failure is the process itself.
+  - **`static`**: there is no run command, so promote-step failures here are rare and usually mean `publicDir` is empty or misconfigured.
+- **Serve phase failures** happen after a successful promote: the app is live but throws errors at runtime. These show up in `fetchDeploymentLogs()`, not in build logs.
+
 ### Step 3: Branch on what you find
 
-**Build logs show a clear error** (compilation error, missing dependency, command not found):
+**Build logs show a clear error in the build phase** (compilation error, missing dependency, command not found):
 → Fix the code or configuration directly. See Common Failure Modes below.
 
-**Build succeeded but app crashes on startup:**
-→ Check runtime logs: `fetchDeploymentLogs({ message: "(?i)(error|exception|failed|crash)" })`.
+**Build phase succeeded but the promote step failed** (build logs mention health check, startup probe, container failing to start, the process exiting, or the deployment never became ready):
+→ First check the deployment target in `.replit`'s `[deployment]` section — the right diagnosis depends on it.
+→ For **`autoscale` and HTTP-serving `vm`**: the app is failing the startup probe. The default probe is `GET /`. The probe can fail because the app crash-loops on startup, the probe path returns non-200, or the app binds to the wrong host/port. See "Health check / promote step failure" and "Application crashes on startup" below.
+→ For **non-HTTP `vm` (bots, workers) and `scheduled` jobs**: the run command exited non-zero or crashed before becoming healthy. There is no HTTP probe — do not chase a `/` route. See "Application crashes on startup" below.
+→ Either way, check runtime logs to see why the process is failing: `fetchDeploymentLogs({ message: "(?i)(error|exception|failed|crash|traceback)" })`.
 
 **No obvious cause from build logs:**
 → Check runtime logs for post-deploy errors.
@@ -160,9 +172,13 @@ After making code or configuration fixes:
 
 ### Application crashes on startup
 
-- **Indicators:** Build succeeds, but the deployment fails with crash-related errors in runtime logs.
-- **Look for:** Uncaught exceptions, import errors, missing modules, syntax errors in runtime logs.
-- **Fix:** Read the stack trace, fix the code error.
+- **Indicators:** Build succeeds, but the deployment fails at the **promote step**. How this surfaces depends on the deployment target:
+  - **`autoscale` / HTTP-serving `vm`**: build logs mention the container failing health checks, the startup probe timing out, or the deployment never becoming ready. A crashing or crash-looping app cannot respond to the probe, so the promote step fails.
+  - **non-HTTP `vm` (bots, workers) / `scheduled` jobs**: build logs show the run command exiting with a stack trace or non-zero exit code, or the process restarting repeatedly. There is no HTTP probe — the failure is just the process dying.
+- **Look for:** Uncaught exceptions, import errors, missing modules, missing environment variables (e.g. `DISCORD_TOKEN`), syntax errors, or repeated restarts in runtime logs (`fetchDeploymentLogs`).
+- **Fix:** Read the stack trace and fix the code error so the app starts cleanly and stays up. Confirm by running the production `run` command locally:
+  - For HTTP services: it must start without crashing **and** respond 200 on the probe path (`GET /` by default).
+  - For bots/workers/jobs: it must start without crashing and stay running (or, for `scheduled`, run to completion with exit code 0). If the crash is from a missing secret, use `requestEnvVar()` to ask the user to add it to production.
 
 ### Build command failure
 
@@ -185,12 +201,17 @@ After making code or configuration fixes:
   - App uses a `PORT` env var that isn't set in production.
 - **Fix:** Ensure the app binds to `0.0.0.0` on the correct port.
 
-### Health check failure
+### Health check / promote step failure
 
-- **Indicators:** Build succeeds, deployment fails with health check timeout.
-- **Details:** Deployed apps must respond with HTTP 200 to `GET /` (the default health check path).
-- **Common causes:** App returns 404 or redirect on `/`, app takes too long to start, app requires authentication on all routes including `/`.
-- **Fix:** Ensure the root route `/` returns a 200 response. Optimize startup time if needed.
+- **Indicators:** The **build phase succeeds** but the deployment fails at the **promote step**. Build logs mention health check failures, startup probe timeouts, the container failing to become ready, or the deployment never reaching the live state. This is one of the most common deployment failure modes and it is **not** a build problem — the artifact built fine, the app just isn't responding to the probe.
+- **Details:** Before promoting a deployment to live, the deployer sends a startup probe to `GET /` and requires an HTTP 200 response. If the probe doesn't get a 200 within the timeout, the promote step fails and the previous version (if any) keeps serving traffic.
+- **Common causes:**
+  - **App crashes or crash-loops on startup** — a crashing app obviously can't respond to the probe. Check runtime logs for stack traces. See "Application crashes on startup" above.
+  - App returns 404, 3xx redirect, or 5xx on `/`.
+  - App requires authentication on all routes including `/`.
+  - App binds to `localhost`/`127.0.0.1` instead of `0.0.0.0`, or to the wrong port.
+  - App takes too long to start (slow imports, blocking startup work, large model downloads).
+- **Fix:** Ensure the root route `/` returns a 200 response. Use `fetchDeploymentLogs()` to see whether the app is crashing or just responding incorrectly. Optimize startup time if needed.
 
 ### Missing or different environment variables
 

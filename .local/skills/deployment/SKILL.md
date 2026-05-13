@@ -33,8 +33,8 @@ Use this skill when:
 
 This skill has additional reference documents for specific deployment scenarios. Read them as needed:
 
-- `references/deployment-logs.md` — How to fetch and analyze runtime deployment logs. Read this when the user's deployed app is misbehaving, the live site is down, or they want to check production logs.
-- `references/deployment-failure-debugging.md` — How to diagnose and fix deployment build failures. Read this when the user's deployment build fails to publish, the app crashes during the publishing step, or the user asks for help debugging a deployment error.
+- `.local/skills/deployment/references/deployment-logs.md` — How to fetch and analyze runtime deployment logs. Read this when the user's deployed app is misbehaving, the live site is down, or they want to check production logs.
+- `.local/skills/deployment/references/deployment-failure-debugging.md` — How to diagnose and fix deployment build failures. Read this when the user's deployment build fails to publish, the app crashes during the publishing step, or the user asks for help debugging a deployment error.
 
 ## Available Functions
 
@@ -78,9 +78,38 @@ const result3 = await deployConfig({
 
 Prompt the user to click the Publish button after the app is ready. **Only works in the main repl context** — in task-agent/subrepl sessions this callback returns `success: false`. If you are in a task agent, skip this call and instead remind the user to publish from the main version after merging.
 
+### getDeploymentInfo()
+
+Fetch the repl's current deployment metadata directly from the deployments service. Always call this — never guess from memory or environment variables — when you need to know whether the project is published, what its production URL is, or whether the live build is healthy. Do NOT run `echo $REPLIT_DOMAINS` to discover the production URL — inside the dev container that variable holds the `.replit.dev` development domain, not the production URL.
+
+**Returns:** Dict with:
+
+- `success` (bool): `false` when the deployments service is unreachable. Treat as "deployment status unknown" — tell the user the status is currently unavailable rather than asserting there is no deployment
+- `isDeployed` (bool): `true` when an active deployment exists for this repl. When `false`, do not fabricate a URL — there is no production URL to give. If the user wants a production URL or asks what their live URL is, guide them through publishing first via the usual deployment flow (e.g. `suggestDeploy()`).
+- `primaryUrl` (str): fully-qualified production URL with `https://` scheme (a verified custom domain if the user configured one, otherwise the generated `*.replit.app` subdomain). Empty string when not deployed. Use this whenever you need the production URL (e.g. setting a `REPLIT_APP_URL` secret, configuring rewrites in an external CMS, curling the live site, or telling the user where their app is reachable)
+- `additionalUrls` (list[str]): other public URLs (e.g. additional verified custom domains). Empty list when none
+- `deploymentType` (str): one of `"autoscale"`, `"vm"`, `"static"`, `"scheduled"`, or `""` if unknown / not applicable. Matches the `deploymentTarget` vocabulary `deployConfig()` accepts
+- `hasSuccessfulBuild` (bool): `true` only when the deployment's current build is in the `success` status. `false` when the build is still pending, failed, suspended, or no current build exists. When `isDeployed` is `true` but this is `false`, the `primaryUrl` may be unreachable or still be serving a previous successful build — if the user reports the live site is broken, suspect the in-flight or failed build first (see `.local/skills/deployment/references/deployment-failure-debugging.md` for how to investigate)
+
+**Example:**
+
+```javascript
+const info = await getDeploymentInfo();
+if (!info.success) {
+    console.log("Deployment status unavailable; try again in a moment.");
+} else if (!info.isDeployed) {
+    console.log("This repl has not been published yet.");
+} else {
+    console.log(`Live at ${info.primaryUrl} (${info.deploymentType})`);
+    if (!info.hasSuccessfulBuild) {
+        console.log("Current build is not in the success status — URL may be stale.");
+    }
+}
+```
+
 ### fetchDeploymentLogs({ afterTimestamp, beforeTimestamp, message, messageContext })
 
-Fetch and analyze deployment logs. See `references/deployment-logs.md` for full documentation.
+Fetch and analyze deployment logs. See `.local/skills/deployment/references/deployment-logs.md` for full documentation.
 
 ## Deployment Targets
 

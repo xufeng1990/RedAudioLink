@@ -124,6 +124,19 @@ If an iframe is created while the workflow is still booting, rely on the canvas 
 
 **Multi-viewport layouts.** When showing the same component at different screen sizes, place them in a row using the viewport presets (Mobile: 390x844, Tablet: 768x1024, Desktop: 1280x720). Use `align` (top) + `distribute` (horizontal) in the same batch to line them up instead of hand-computing 50px gutters.
 
+**Empty-canvas exception.** If `getCanvasState` shows the canvas is empty — `focusedShapes`, `blurryShapes`, **and** `peripheralClusters` all empty (the `summary` count alone misses off-screen content) — follow the placement with one `focusCanvasShapes` call on the placeholder IDs in the same execution. Otherwise default rule (`presentArtifact` only). For 3+ placeholders, layer on `align`/`distribute` per the "Variant grid layout" paragraph above; for 1-2 placeholders skip them — `align` requires 2+ shapes and `distribute` requires 3+, so an unconditional batch fails before any placeholder is shown.
+
+```javascript
+const ids = ["coffee-artisan", "coffee-modern", "coffee-warm"];
+await applyCanvasActions({ actions: ids.map((id, i) => ({
+  type: "create",
+  shapeId: id,
+  shape: { type: "iframe", x: i * 1380, y: 0, w: 1280, h: 900,
+           state: "building", componentName: `Variant ${i + 1}` },
+})) });
+await focusCanvasShapes({ shapeIds: ids, animateMs: 500 });
+```
+
 **Clean up the layout before presenting.** Before the final `presentArtifact` call (Step 5), align and distribute any row or column of 3+ iframes you placed. This produces a pixel-perfect layout that hand-computed coordinates usually miss by a few units, and it's what the user first sees when they focus on your work. For a 2-shape pair (e.g. before/after), align the shared edge but set the gap on create -- `distribute` rejects 2 shapes.
 
 **Do not call `suggestDeploy()`.** The mockup sandbox is a local prototyping tool and is not meant to be deployed — if the user asks to publish or deploy canvas/mockup content, integrate/graduate it into a real app artifact first.
@@ -362,9 +375,10 @@ Every mockup request -- whether handled directly or via subagents -- should show
 
 1. Read the canvas state to find empty space
 2. Immediately place iframe(s) with `state: "building"` and `componentName` at the expected sizes
+   - **Empty-canvas only:** if the canvas was empty before this batch, follow the placement with a `focusCanvasShapes` on the new placeholder IDs in the same execution. See [Step 4 → Empty-canvas exception](#step-4-layout-and-focus) for the precise emptiness check.
 3. Proceed with component development.
-   - For direct builds, set the iframe `state: "live"` once the component is ready and the URL/component metadata can be filled in.
-   - For subagent builds, ask the subagent to set the iframe `state: "live"` in its request so the preview updates as quickly as possible.
+   - For direct builds, set the iframe `state: "live"` once the component is ready, then screenshot the component to confirm it renders.
+   - For subagent builds, ask the subagent to set the iframe `state: "live"` AND verify with a screenshot before reporting — broken iframes are invisible to the user until someone checks. The subagent's prompt has the screenshot tool mechanics; the parent only needs to include a verification instruction in the task (e.g. "Screenshot the preview to verify it renders before reporting").
 4. Check the system logs for iframe-related issues, fix any problems, and restart the workflow once all components are created.
 
 **Flow for modifying existing components:**
@@ -457,7 +471,7 @@ Parent: Check system logs, fix issues and restart workflow once all subagents co
 1. Run the design-exploration comprehension steps (analyze component, identify constraints, select variation axes) and compose a structured design brief
 2. Create the folder (e.g., `mockups/pricing-cards/`)
 3. Place iframes with `state: "building"` in a horizontal row on the canvas, one per variant, with stable shape IDs. For 3+ variants, place them at rough positions and use `align` (top) + `distribute` (horizontal) in the same batch rather than hand-computing gutters.
-4. Seed each subagent with: the design brief, target file path, shape ID to update, dev URL, and the specific design hypothesis for this variant and ask it to set the iframe live.
+4. Seed each subagent with: the design brief, target file path, shape ID to update, dev URL, and the specific design hypothesis for this variant. **Tell each subagent not to edit `index.css`** — multiple subagents run in parallel and will overwrite each other's changes.
 5. After all subagents complete: restart workflow, call `presentArtifact` with all shape IDs.
 
 **Subagent task format:**
@@ -491,6 +505,14 @@ aesthetic exploration.
 The exported function name must match the filename: export function Bold().
 Use Tailwind + shadcn/ui.
 
+## CSS rules
+Do NOT edit index.css — other subagents are running in parallel and will overwrite
+your changes. All styles must be self-contained within your component:
+- Use Tailwind utility classes and inline styles for all visual styling
+- For custom fonts, use Google Fonts <link> tags in a wrapper <div> or inline @import
+- If you need CSS custom properties or @keyframes, create a _group.css in the
+  component folder and import it in your .tsx file
+
 When done, update the canvas iframe to show the real preview:
   Shape ID: pricing-bold
   URL: https://<dev-url>/__mockup/preview/pricing-cards/Bold
@@ -503,7 +525,7 @@ When done, update the canvas iframe to show the real preview:
 1. Place iframes with `state: "building"` on the canvas with stable shape IDs
 2. Create the project folder and `_shared/` subfolder
 3. Build shared layout components (`AppLayout.tsx` with a content slot, `Navbar.tsx`, `Sidebar.tsx`, etc.)
-4. Fan out DESIGN subagents for each page, passing `_shared/` file paths, shape ID, and dev URL
+4. Fan out DESIGN subagents for each page, passing `_shared/` file paths, shape ID, and dev URL. **Tell each subagent not to edit `index.css`** — multiple subagents run in parallel and will overwrite each other's changes.
 5. After all subagents complete: restart workflow, call `presentArtifact` with all shape IDs.
 
 **Multi-page subagent task format (only when user explicitly requests multiple pages):**
@@ -522,6 +544,14 @@ and a quick-actions panel.
 
 The exported function name must match the filename: export function Dashboard().
 Use Tailwind + shadcn/ui.
+
+## CSS rules
+Do NOT edit index.css — other subagents are running in parallel and will overwrite
+your changes. All styles must be self-contained within your component:
+- Use Tailwind utility classes and inline styles for all visual styling
+- For custom fonts, use Google Fonts <link> tags in a wrapper <div> or inline @import
+- If you need CSS custom properties or @keyframes, create a _group.css in the
+  component folder and import it in your .tsx file
 
 When done, update the canvas iframe to show the real preview:
   Shape ID: crm-dashboard

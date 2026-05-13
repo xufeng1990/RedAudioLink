@@ -7,28 +7,29 @@ import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app)
 
-const expoProxy = createProxyMiddleware({
-  target: "http://localhost:8081",
-  changeOrigin: true,
-  ws: true,
-  logger: undefined,
-  pathFilter: (pathname: string) => {
-    if (pathname.startsWith("/admin")) return false;
-    if (pathname.startsWith("/api")) return false;
-    if (pathname.startsWith("/__replco")) return false;
-    if (pathname.startsWith("/@vite")) return false;
-    if (pathname.startsWith("/@id")) return false;
-    if (pathname.startsWith("/@fs")) return false;
-    if (pathname.startsWith("/@react-refresh")) return false;
-    if (pathname.startsWith("/src/")) return false;
-    if (pathname.startsWith("/node_modules/")) return false;
-    if (pathname.startsWith("/attached_assets/")) return false;
-    if (pathname === "/favicon.ico") return false;
-    return true;
-  },
-});
-
-app.use(expoProxy);
+if (process.env.NODE_ENV !== "production") {
+  const expoProxy = createProxyMiddleware({
+    target: "http://localhost:8081",
+    changeOrigin: true,
+    ws: true,
+    logger: undefined,
+    pathFilter: (pathname: string) => {
+      if (pathname.startsWith("/admin")) return false;
+      if (pathname.startsWith("/api")) return false;
+      if (pathname.startsWith("/__replco")) return false;
+      if (pathname.startsWith("/@vite")) return false;
+      if (pathname.startsWith("/@id")) return false;
+      if (pathname.startsWith("/@fs")) return false;
+      if (pathname.startsWith("/@react-refresh")) return false;
+      if (pathname.startsWith("/src/")) return false;
+      if (pathname.startsWith("/node_modules/")) return false;
+      if (pathname.startsWith("/attached_assets/")) return false;
+      if (pathname === "/favicon.ico") return false;
+      return true;
+    },
+  });
+  app.use(expoProxy);
+}
 
 declare module "http" {
   interface IncomingMessage {

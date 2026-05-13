@@ -5,6 +5,9 @@
   },
   "build": {
     "preview": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://red-rn-ban-ben.replit.app"
+      },
       "android": {
         "buildType": "apk",
         "distribution": "internal"
@@ -15,6 +18,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://red-rn-ban-ben.replit.app"
+      },
       "android": {
         "buildType": "app-bundle"
       },

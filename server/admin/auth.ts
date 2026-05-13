@@ -87,7 +87,7 @@ export function audit(action: string, resource = "") {
           adminUsername: admin?.username,
           action,
           resource,
-          resourceId: req.params?.id || resourceId,
+          resourceId: (req.params?.id as string) || resourceId,
           detail: {
             method: req.method,
             path: req.originalUrl,

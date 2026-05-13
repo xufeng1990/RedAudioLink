@@ -91,6 +91,8 @@ The catalog below is a snapshot. New skills may be added to the platform at any 
 
 | **integrations** | Connect to third-party services (Stripe, GitHub, Google, Linear, Notion, etc.) |
 
+| **rayfin** | Scaffold, run, and deploy Rayfin apps — Microsoft's Backend-as-a-Service (auth, database, storage) deployed to Microsoft Fabric. Gated behind the Replit <> Microsoft partnership flag |
+
 | **query-integration-data** | Query and modify data in connected integrations or data warehouses |
 
 | **replit-auth** | Add user authentication (login, sign-up, accounts) using Replit Auth |

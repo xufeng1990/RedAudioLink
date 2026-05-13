@@ -15,7 +15,8 @@ description: Search the web, fetch content, extract branding profiles, and captu
 ## When NOT to Use
 
 - Replit-specific features (use the `replit-docs` skill)
-- Image/media downloads (use `media-generation`)
+- Searching for real web images or logo files (use the `image-search` skill)
+- Image or video generation (use the `media-generation` skill)
 - Code search within the project (use grep/glob tools)
 
 ## Available Functions

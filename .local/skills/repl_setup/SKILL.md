@@ -43,9 +43,9 @@ Never use Docker, virtual environments, or containerization. Replit uses a Nix e
 
 For framework-specific configuration, refer to these guides:
 
-- `references/angular.md` - Angular setup with allowedHosts and CLI flags
-- `references/react_vite.md` - React and Vite configuration
-- `references/vue.md` - Vue.js setup
+- `.local/skills/repl_setup/references/angular.md` - Angular setup with allowedHosts and CLI flags
+- `.local/skills/repl_setup/references/react_vite.md` - React and Vite configuration
+- `.local/skills/repl_setup/references/vue.md` - Vue.js setup
 
 ## Frontend-Backend Connectivity
 

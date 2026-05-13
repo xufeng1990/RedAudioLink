@@ -31,7 +31,7 @@ Only propose follow-ups that represent genuine, actionable work.
 
 If your current task already has downstream tasks depending on it (listed in your task assignment), skip calling `proposeFollowUpTasks` entirely — those tasks already cover the planned next steps.
 
-Only call `proposeFollowUpTasks` once per task — the system rejects duplicate calls. If you're marking it complete again after more work, review your previously proposed follow-ups. If any are now stale or no longer relevant given the new work, call `markFollowUpTaskObsolete` to remove them.
+`proposeFollowUpTasks` is **one-shot per assigned project task** — not per turn, not per subfeature, not per `mark_task_complete` cycle. The system rejects duplicate calls. If you're marking complete again after more work on the same assigned task, review your previously proposed follow-ups; if any are now stale, call `markFollowUpTaskObsolete` to retract them.
 
 ## Examples
 
@@ -40,20 +40,21 @@ Only call `proposeFollowUpTasks` once per task — the system rejects duplicate 
 const followUps = await proposeFollowUpTasks({
     tasks: [
         {
-            title: "Create a slide deck for onboarding demos",
+            title: "Let users save favorite recipes to a personal collection",
             category: "next_steps",
-            description: `# Create a slide deck for onboarding demos
+            description: `# Let users save favorite recipes to a personal collection
 
 ## What & Why
-The project has no presentation materials for demos or onboarding. A short slide deck would make it easier to explain the product flow to teammates and stakeholders.
+Users currently can't keep track of recipes they like. A favorites collection is the natural next feature on top of the existing browsing flow — it gives the app stickiness and a reason to return.
 
 ## Done looks like
-- A polished slide deck exists for demoing the product
-- The deck explains the core user flow and value proposition clearly
+- Authenticated users can favorite / unfavorite a recipe from the list and detail pages
+- A "My favorites" page shows the user's collection
+- Favorites persist across sessions
 
 ## Relevant files
-- \`src/pages/index.tsx\`
-- \`src/content/marketing-copy.ts\``
+- \`src/pages/recipes/[id].tsx\`
+- \`src/components/RecipeCard.tsx\``
         },
         {
             title: "Save recipes permanently so they aren't lost on refresh",
@@ -68,8 +69,7 @@ Recipe data is hardcoded in a static file. Users who add or edit recipes will lo
 - Users can add, edit, and delete recipes without losing data
 
 ## Relevant files
-- \`src/data/recipes.ts\` (current static data)
-- \`lib/db/src/schema/recipes.ts\` (new schema)`
+- \`src/data/recipes.ts\``
         }
     ]
 });

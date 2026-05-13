@@ -1,3 +1,17 @@
+/**
+ * Platform contract file — do not restructure.
+ *
+ * This file is part of the contract between the slides artifact and
+ * the surrounding workspace tooling (preview, thumbnails, exports).
+ * Reorganizing it, swapping the router, or changing the structure
+ * of `AllSlides` can quietly break that tooling even when the page
+ * still looks correct in the preview.
+ *
+ * Agents: see the slides skill `<workspace_contract>` for the full
+ * rules, and `references/visual_qa.md` → "Platform contract sanity
+ * check" if this file has been hand-edited and needs repair.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
@@ -124,6 +138,10 @@ function SlideEditor() {
   );
 }
 
+// Do not rewrite this component. Each slide must remain wrapped in
+// `<div className="slide">` sized 1920×1080 — the class name and
+// dimensions are part of the platform contract. See the file-level
+// banner above for context.
 function AllSlides() {
   return (
     <div className="bg-black">

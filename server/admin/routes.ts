@@ -145,7 +145,7 @@ export function registerAdminRoutes(app: Express): void {
     requirePerm("users.read"),
     async (req, res, next) => {
       try {
-        const u = await adminStore.getUserDetail(req.params.id);
+        const u = await adminStore.getUserDetail((req.params.id as string));
         if (!u) return res.status(404).json({ message: "User not found" });
         res.json({ user: u });
       } catch (err) {
@@ -162,7 +162,7 @@ export function registerAdminRoutes(app: Express): void {
     async (req, res, next) => {
       try {
         const data = adminUserUpdateSchema.parse(req.body);
-        const updated = await adminStore.updateUserAdmin(req.params.id, data);
+        const updated = await adminStore.updateUserAdmin((req.params.id as string), data);
         if (!updated) return res.status(404).json({ message: "User not found" });
         res.json({ ok: true });
       } catch (err) {
@@ -181,7 +181,7 @@ export function registerAdminRoutes(app: Express): void {
       try {
         const data = adminResetUserPasswordSchema.parse(req.body);
         const hashed = await hashPassword(data.newPassword);
-        const ok = await adminStore.resetUserPassword(req.params.id, hashed);
+        const ok = await adminStore.resetUserPassword((req.params.id as string), hashed);
         if (!ok) return res.status(404).json({ message: "User not found" });
         res.json({ ok: true });
       } catch (err) {
@@ -216,7 +216,7 @@ export function registerAdminRoutes(app: Express): void {
     requirePerm("tasks.read"),
     async (req, res, next) => {
       try {
-        const t = await adminStore.getTaskAdmin(req.params.id);
+        const t = await adminStore.getTaskAdmin((req.params.id as string));
         if (!t) return res.status(404).json({ message: "Task not found" });
         res.json({ task: t });
       } catch (err) {
@@ -233,7 +233,7 @@ export function registerAdminRoutes(app: Express): void {
     async (req, res, next) => {
       try {
         const data = updateTaskSchema.parse(req.body);
-        const updated = await adminStore.updateTaskAdmin(req.params.id, {
+        const updated = await adminStore.updateTaskAdmin((req.params.id as string), {
           status: data.status,
         });
         if (!updated) return res.status(404).json({ message: "Task not found" });
@@ -252,7 +252,7 @@ export function registerAdminRoutes(app: Express): void {
     audit("task.delete", "task"),
     async (req, res, next) => {
       try {
-        const ok = await adminStore.deleteTaskAdmin(req.params.id);
+        const ok = await adminStore.deleteTaskAdmin((req.params.id as string));
         if (!ok) return res.status(404).json({ message: "Task not found" });
         res.json({ ok: true });
       } catch (err) {
@@ -293,7 +293,7 @@ export function registerAdminRoutes(app: Express): void {
     requirePerm("reports.read"),
     async (req, res, next) => {
       try {
-        const r2 = await adminStore.getReportDetailAdmin(req.params.id);
+        const r2 = await adminStore.getReportDetailAdmin((req.params.id as string));
         if (!r2) return res.status(404).json({ message: "Report not found" });
         res.json({
           report: {
@@ -318,7 +318,7 @@ export function registerAdminRoutes(app: Express): void {
     requirePerm("reports.read"),
     async (req, res, next) => {
       try {
-        const r2 = await adminStore.getReportDetailAdmin(req.params.id);
+        const r2 = await adminStore.getReportDetailAdmin((req.params.id as string));
         if (!r2) return res.status(404).json({ message: "Report not found" });
         res.setHeader("content-type", "text/html; charset=utf-8");
         res.send(r2.html);
@@ -378,7 +378,7 @@ export function registerAdminRoutes(app: Express): void {
         const data = updateBusinessSchema.parse(req.body);
         const fields: any = { ...data };
         if (fields.code) fields.code = String(fields.code).toUpperCase();
-        const updated = await adminStore.updateBusiness(req.params.id, fields);
+        const updated = await adminStore.updateBusiness((req.params.id as string), fields);
         if (!updated)
           return res.status(404).json({ message: "Business not found" });
         res.json({ business: updated });
@@ -396,7 +396,7 @@ export function registerAdminRoutes(app: Express): void {
     audit("business.delete", "business"),
     async (req, res, next) => {
       try {
-        const ok = await adminStore.deleteBusiness(req.params.id);
+        const ok = await adminStore.deleteBusiness((req.params.id as string));
         if (!ok) return res.status(404).json({ message: "Business not found" });
         res.json({ ok: true });
       } catch (err) {
@@ -465,11 +465,11 @@ export function registerAdminRoutes(app: Express): void {
         if (data.password !== undefined) {
           fields.password = await hashPassword(data.password);
         }
-        await adminStore.updateAdmin(req.params.id, fields);
+        await adminStore.updateAdmin((req.params.id as string), fields);
         if (data.roleIds) {
-          await adminStore.setAdminRoles(req.params.id, data.roleIds);
+          await adminStore.setAdminRoles((req.params.id as string), data.roleIds);
         }
-        const detail = await adminStore.getAdminWithRoles(req.params.id);
+        const detail = await adminStore.getAdminWithRoles((req.params.id as string));
         if (!detail) return res.status(404).json({ message: "Admin not found" });
         res.json({ admin: publicAdmin(detail) });
       } catch (err) {
@@ -487,12 +487,12 @@ export function registerAdminRoutes(app: Express): void {
     async (req, res, next) => {
       try {
         const me = (req as AdminRequest).admin;
-        if (me.id === req.params.id) {
+        if (me.id === (req.params.id as string)) {
           return res
             .status(400)
             .json({ message: "Cannot delete your own account" });
         }
-        const ok = await adminStore.deleteAdmin(req.params.id);
+        const ok = await adminStore.deleteAdmin((req.params.id as string));
         if (!ok) return res.status(404).json({ message: "Admin not found" });
         res.json({ ok: true });
       } catch (err) {
@@ -548,7 +548,7 @@ export function registerAdminRoutes(app: Express): void {
     async (req, res, next) => {
       try {
         const data = updateAdminRoleSchema.parse(req.body);
-        const updated = await adminStore.updateRole(req.params.id, data);
+        const updated = await adminStore.updateRole((req.params.id as string), data);
         if (!updated) return res.status(404).json({ message: "Role not found" });
         res.json({ role: updated });
       } catch (err) {
@@ -565,7 +565,7 @@ export function registerAdminRoutes(app: Express): void {
     audit("role.delete", "role"),
     async (req, res, next) => {
       try {
-        const ok = await adminStore.deleteRole(req.params.id);
+        const ok = await adminStore.deleteRole((req.params.id as string));
         if (!ok) return res.status(404).json({ message: "Role not found" });
         res.json({ ok: true });
       } catch (err: any) {
